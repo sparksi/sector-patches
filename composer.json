@@ -1,0 +1,21 @@
+{
+  "name": "sparksi/sector-patches",
+  "type": "metapackage",
+  "require": {
+    "drupal/core": "~10",
+    "cweagans/composer-patches": "^1.7"
+  },
+  "config": {
+    "allow-plugins": {
+      "cweagans/composer-patches": true
+    }
+  },
+  "extra": {
+    "patches": {
+      "drupal/core": {
+        "Html::cleanCssIdentifier Strips Valid Escaped Characters": "https://www.drupal.org/files/issues/2024-11-11/2916377-53.patch",
+        "[10.2 regression] CKEditor 5 breaks when \"Source\"/Source editing button is added and \"Manually editable HTML tags\" are specified": "https://www.drupal.org/files/issues/2024-01-23/drupal-revert-source-editing-validation-tightening-3410100-38.patch"
+      }
+    }
+  }
+}
