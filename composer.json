@@ -1,7 +1,7 @@
 {
   "name": "sparksi/sector-patches",
   "type": "metapackage",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "require": {
     "drupal/core": "~11",
     "cweagans/composer-patches": "^1.7"
@@ -15,7 +15,8 @@
     "patches": {
       "drupal/core": {
         "Html::cleanCssIdentifier Strips Valid Escaped Characters": "https://www.drupal.org/files/issues/2025-06-20/2916377.patch",
-        "[10.2 regression] CKEditor 5 breaks when \"Source\"/Source editing button is added and \"Manually editable HTML tags\" are specified": "https://www.drupal.org/files/issues/2025-06-26/3410100-108-revert-3396628-11-x.patch"
+        "[10.2 regression] CKEditor 5 breaks when \"Source\"/Source editing button is added and \"Manually editable HTML tags\" are specified": "https://www.drupal.org/files/issues/2025-06-26/3410100-108-revert-3396628-11-x.patch",
+        "[upstream] Use CKEditor 5's native <ol type> and <ul type> UX": "https://git.drupalcode.org/project/drupal/-/merge_requests/11100.patch"
       }
     }
   }
