@@ -3,7 +3,7 @@
   "type": "metapackage",
   "version": "dev-main",
   "require": {
-    "drupal/core": "~10",
+    "drupal/core": "~11",
     "cweagans/composer-patches": "^1.7"
   },
   "config": {
