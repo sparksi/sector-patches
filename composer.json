@@ -16,7 +16,8 @@
       "drupal/core": {
         "Html::cleanCssIdentifier Strips Valid Escaped Characters": "https://www.drupal.org/files/issues/2024-11-11/2916377-53.patch",
         "[10.2 regression] CKEditor 5 breaks when \"Source\"/Source editing button is added and \"Manually editable HTML tags\" are specified": "https://www.drupal.org/files/issues/2024-01-23/drupal-revert-source-editing-validation-tightening-3410100-38.patch",
-        "[upstream] Use CKEditor 5's native <ol type> and <ul type> UX": "https://www.drupal.org/files/issues/2025-07-29/3274635-cke-lists-10-4-x.patch"
+        "[upstream] Use CKEditor 5's native <ol type> and <ul type> UX": "https://www.drupal.org/files/issues/2025-07-29/3274635-cke-lists-10-4-x.patch",
+        "Nested modals don't work: opening a modal from a modal closes the original": "https://www.drupal.org/files/issues/2024-09-13/2741877-142-d10.3.patch"
       }
     }
   }
