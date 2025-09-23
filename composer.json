@@ -17,7 +17,7 @@
         "Html::cleanCssIdentifier Strips Valid Escaped Characters": "https://www.drupal.org/files/issues/2025-06-20/2916377.patch",
         "[10.2 regression] CKEditor 5 breaks when \"Source\"/Source editing button is added and \"Manually editable HTML tags\" are specified": "https://www.drupal.org/files/issues/2025-06-26/3410100-108-revert-3396628-11-x.patch",
         "Nested modals don't work: opening a modal from a modal closes the original": "https://www.drupal.org/files/issues/2025-06-24/drupal-core--2025-06-24--2741877--mr-8105.patch",
-        "Field UI: Add operands to Field Formatter settings": "field_ui_operands.patch"
+        "Field UI: Add operands to Field Formatter settings": "https://raw.githubusercontent.com/sparksi/sector-patches/refs/heads/11.x/field_ui_operands.patch"
       }
     }
   }
