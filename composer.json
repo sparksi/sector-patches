@@ -3,8 +3,8 @@
   "type": "metapackage",
   "version": "dev-main",
   "require": {
-    "drupal/core": "~11",
-    "cweagans/composer-patches": "^1.7"
+    "cweagans/composer-patches": "^1.0 || ^2.0",
+    "drupal/core": "^11"
   },
   "config": {
     "allow-plugins": {
