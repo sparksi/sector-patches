@@ -1,0 +1,1705 @@
+diff --git a/core/misc/cspell/dictionary.txt b/core/misc/cspell/dictionary.txt
+index a8eb34fef4a..1f46f1bf059 100644
+--- a/core/misc/cspell/dictionary.txt
++++ b/core/misc/cspell/dictionary.txt
+@@ -149,6 +149,7 @@ dragtable
+ drillable
+ dropbutton
+ dropbuttons
++eacute
+ editables
+ egulias
+ elbonia
+diff --git a/core/modules/contextual/tests/src/FunctionalJavascript/ContextualLinkClickTrait.php b/core/modules/contextual/tests/src/FunctionalJavascript/ContextualLinkClickTrait.php
+index b6b62dbddd2..02eba539a36 100644
+--- a/core/modules/contextual/tests/src/FunctionalJavascript/ContextualLinkClickTrait.php
++++ b/core/modules/contextual/tests/src/FunctionalJavascript/ContextualLinkClickTrait.php
+@@ -19,7 +19,7 @@ trait ContextualLinkClickTrait {
+    * @param bool $force_visible
+    *   If true then the button will be forced to visible so it can be clicked.
+    */
+-  protected function clickContextualLink($selector, $link_locator, $force_visible = TRUE) {
++  protected function clickContextualLink($selector, $link_locator, $force_visible = TRUE): void {
+     $page = $this->getSession()->getPage();
+     $page->waitFor(10, function () use ($page, $selector) {
+       return $page->find('css', "$selector .contextual-links");
+@@ -44,7 +44,7 @@ protected function clickContextualLink($selector, $link_locator, $force_visible
+    * @param string $selector
+    *   The selector for the element that contains the contextual link.
+    */
+-  protected function toggleContextualTriggerVisibility($selector) {
++  protected function toggleContextualTriggerVisibility($selector): void {
+     // Hovering over the element itself with should be enough, but does not
+     // work. Manually remove the visually-hidden class.
+     $this->getSession()->executeScript("jQuery('{$selector} .contextual .trigger').toggleClass('visually-hidden');");
+diff --git a/core/modules/layout_builder/css/layout-builder.css b/core/modules/layout_builder/css/layout-builder.css
+index 8bd8eeb27df..d742f9568c0 100644
+--- a/core/modules/layout_builder/css/layout-builder.css
++++ b/core/modules/layout_builder/css/layout-builder.css
+@@ -178,3 +178,7 @@
+ .layout-builder-components-table .tabledrag-changed-warning {
+   display: none !important;
+ }
++
++#drupal-off-canvas .configured-conditions {
++  margin: 0.5em 0 1.5em;
++}
+diff --git a/core/modules/layout_builder/css/layout-builder.pcss.css b/core/modules/layout_builder/css/layout-builder.pcss.css
+index 06b73b42992..79a27d1cb31 100644
+--- a/core/modules/layout_builder/css/layout-builder.pcss.css
++++ b/core/modules/layout_builder/css/layout-builder.pcss.css
+@@ -166,3 +166,6 @@
+ .layout-builder-components-table .tabledrag-changed-warning {
+   display: none !important;
+ }
++#drupal-off-canvas .configured-conditions {
++  margin: 0.5em 0 1.5em;
++}
+diff --git a/core/modules/layout_builder/layout_builder.links.contextual.yml b/core/modules/layout_builder/layout_builder.links.contextual.yml
+index 4bbfcc9e64d..60c3da0f28f 100644
+--- a/core/modules/layout_builder/layout_builder.links.contextual.yml
++++ b/core/modules/layout_builder/layout_builder.links.contextual.yml
+@@ -27,3 +27,13 @@ layout_builder_block_remove:
+       class: ['use-ajax']
+       data-dialog-type: dialog
+       data-dialog-renderer: off_canvas
++
++layout_builder_block_visibility:
++  title: 'Control visibility'
++  route_name: 'layout_builder.visibility'
++  group: 'layout_builder_block'
++  options:
++    attributes:
++      class: ['use-ajax']
++      data-dialog-type: dialog
++      data-dialog-renderer: off_canvas
+diff --git a/core/modules/layout_builder/layout_builder.routing.yml b/core/modules/layout_builder/layout_builder.routing.yml
+index a0e7f4fda39..3fa2ac14218 100644
+--- a/core/modules/layout_builder/layout_builder.routing.yml
++++ b/core/modules/layout_builder/layout_builder.routing.yml
+@@ -145,3 +145,42 @@ layout_builder.move_block:
+     parameters:
+       section_storage:
+         layout_builder_tempstore: TRUE
++
++layout_builder.visibility:
++  path: '/layout_builder/visibility/block/{section_storage_type}/{section_storage}/{delta}/{uuid}'
++  defaults:
++    _form: '\Drupal\layout_builder\Form\BlockVisibilityForm'
++    _title_callback: '\Drupal\layout_builder\Form\BlockVisibilityForm::title'
++  requirements:
++    _layout_builder_access: 'view'
++  options:
++    _admin_route: TRUE
++    parameters:
++      section_storage:
++        layout_builder_tempstore: TRUE
++
++layout_builder.add_visibility:
++  path: '/layout_builder/visibility/block/{section_storage_type}/{section_storage}/{delta}/{uuid}/{plugin_id}'
++  defaults:
++    _form: '\Drupal\layout_builder\Form\ConfigureVisibilityForm'
++    _title_callback: '\Drupal\layout_builder\Form\ConfigureVisibilityForm::title'
++  requirements:
++    _layout_builder_access: 'view'
++  options:
++    _admin_route: TRUE
++    parameters:
++      section_storage:
++        layout_builder_tempstore: TRUE
++
++layout_builder.delete_visibility:
++  path: '/layout_builder/visibility/block/{section_storage_type}/{section_storage}/{delta}/{uuid}/{plugin_id}/delete'
++  defaults:
++    _form: '\Drupal\layout_builder\Form\DeleteVisibilityForm'
++    _title_callback: '\Drupal\layout_builder\Form\DeleteVisibilityForm::title'
++  requirements:
++    _layout_builder_access: 'view'
++  options:
++    _admin_route: TRUE
++    parameters:
++      section_storage:
++        layout_builder_tempstore: TRUE
+diff --git a/core/modules/layout_builder/layout_builder.services.yml b/core/modules/layout_builder/layout_builder.services.yml
+index d708ff667ce..86b9dc89e58 100644
+--- a/core/modules/layout_builder/layout_builder.services.yml
++++ b/core/modules/layout_builder/layout_builder.services.yml
+@@ -61,6 +61,9 @@ services:
+     class: Drupal\layout_builder\InlineBlockUsage
+     arguments: ['@database']
+   Drupal\layout_builder\InlineBlockUsageInterface: '@inline_block.usage'
++  layout_builder.component_visibility_subscriber:
++    class: Drupal\layout_builder\EventSubscriber\SectionComponentVisibility
++    arguments: ['@context.handler', '@plugin.manager.condition']
+   layout_builder.element.prepare_layout:
+     class: Drupal\layout_builder\EventSubscriber\PrepareLayout
+     arguments: ['@layout_builder.tempstore_repository', '@messenger']
+diff --git a/core/modules/layout_builder/src/Element/LayoutBuilder.php b/core/modules/layout_builder/src/Element/LayoutBuilder.php
+index 6d2b7ce..396e8d6 100644
+--- a/core/modules/layout_builder/src/Element/LayoutBuilder.php
++++ b/core/modules/layout_builder/src/Element/LayoutBuilder.php
+@@ -326,7 +326,7 @@ class LayoutBuilder extends RenderElementBase implements ContainerFactoryPluginI
+               // links that were cached before the 'move' link was added.
+               // @see layout_builder.links.contextual.yml
+               'metadata' => [
+-                'operations' => 'move:update:remove',
++                'operations' => 'move:update:remove:visibility',
+               ],
+             ],
+           ];
+diff --git a/core/modules/layout_builder/tests/src/FunctionalJavascript/LayoutBuilderSortTrait.php b/core/modules/layout_builder/tests/src/FunctionalJavascript/LayoutBuilderSortTrait.php
+index 8fd00445a24..0a0e26a08f6 100644
+--- a/core/modules/layout_builder/tests/src/FunctionalJavascript/LayoutBuilderSortTrait.php
++++ b/core/modules/layout_builder/tests/src/FunctionalJavascript/LayoutBuilderSortTrait.php
+@@ -16,7 +16,7 @@ trait LayoutBuilderSortTrait {
+   /**
+    * {@inheritdoc}
+    */
+-  protected function sortableUpdate($item, $from, $to = NULL) {
++  protected function sortableUpdate($item, $from, $to = NULL): void {
+     // If container does not change, $from and $to are equal.
+     $to = $to ?: $from;
+ 
+diff --git a/core/modules/menu_ui/tests/src/Traits/MenuUiTrait.php b/core/modules/menu_ui/tests/src/Traits/MenuUiTrait.php
+index 7c2a56d56aa..c049d37ef39 100644
+--- a/core/modules/menu_ui/tests/src/Traits/MenuUiTrait.php
++++ b/core/modules/menu_ui/tests/src/Traits/MenuUiTrait.php
+@@ -17,7 +17,7 @@ trait MenuUiTrait {
+    * @param string $menu_plugin_id
+    *   Menu item id.
+    */
+-  protected function assertMenuLink(array $expected_item, $menu_plugin_id) {
++  protected function assertMenuLink(array $expected_item, $menu_plugin_id): void {
+     // Retrieve the menu link.
+     /** @var \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager */
+     $menu_link_manager = \Drupal::service('plugin.manager.menu.link');
+diff --git a/core/tests/Drupal/FunctionalJavascriptTests/SortableTestTrait.php b/core/tests/Drupal/FunctionalJavascriptTests/SortableTestTrait.php
+index 1631f00209c..2094b2321f0 100644
+--- a/core/tests/Drupal/FunctionalJavascriptTests/SortableTestTrait.php
++++ b/core/tests/Drupal/FunctionalJavascriptTests/SortableTestTrait.php
+@@ -25,7 +25,7 @@ trait SortableTestTrait {
+    * @param null|string $to
+    *   The HTML selector for the target container.
+    */
+-  abstract protected function sortableUpdate($item, $from, $to = NULL);
++  abstract protected function sortableUpdate($item, $from, $to = NULL): void;
+ 
+   /**
+    * Simulates a drag on an element from one container to another.
+@@ -37,7 +37,7 @@ abstract protected function sortableUpdate($item, $from, $to = NULL);
+    * @param null|string $to
+    *   The HTML selector for the target container.
+    */
+-  protected function sortableTo($item, $from, $to) {
++  protected function sortableTo($item, $from, $to): void {
+     $item = addslashes($item);
+     $from = addslashes($from);
+     $to   = addslashes($to);
+@@ -71,7 +71,7 @@ protected function sortableTo($item, $from, $to) {
+    * @param string $from
+    *   The HTML selector for the element container.
+    */
+-  protected function sortableAfter($item, $target, $from) {
++  protected function sortableAfter($item, $target, $from): void {
+     $item   = addslashes($item);
+     $target = addslashes($target);
+     $from   = addslashes($from);
+diff --git a/core/modules/layout_builder/src/EventSubscriber/SectionComponentVisibility.php b/core/modules/layout_builder/src/EventSubscriber/SectionComponentVisibility.php
+new file mode 100644
+index 00000000000..28f89ad53dc
+--- /dev/null
++++ b/core/modules/layout_builder/src/EventSubscriber/SectionComponentVisibility.php
+@@ -0,0 +1,67 @@
++<?php
++
++namespace Drupal\layout_builder\EventSubscriber;
++
++use Drupal\Core\Condition\ConditionAccessResolverTrait;
++use Drupal\Core\Executable\ExecutableManagerInterface;
++use Drupal\Core\Plugin\Context\ContextHandlerInterface;
++use Drupal\Core\Plugin\ContextAwarePluginInterface;
++use Drupal\layout_builder\Event\SectionComponentBuildRenderArrayEvent;
++use Drupal\layout_builder\LayoutBuilderEvents;
++use Symfony\Component\EventDispatcher\EventSubscriberInterface;
++
++/**
++ * Determines component visibility.
++ */
++class SectionComponentVisibility implements EventSubscriberInterface {
++
++  use ConditionAccessResolverTrait;
++
++  /**
++   * Creates a SectionComponentVisibility object.
++   */
++  public function __construct(protected ContextHandlerInterface $contextHandler, protected ExecutableManagerInterface $conditionManager) {
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public static function getSubscribedEvents(): array {
++    // Priority is set to 255 so this subscriber is run after the one in
++    // BlockComponentRenderArray.
++    $events[LayoutBuilderEvents::SECTION_COMPONENT_BUILD_RENDER_ARRAY] = ['onBuildRender', 255];
++    return $events;
++  }
++
++  /**
++   * Determines the visibility of section components.
++   *
++   * @param \Drupal\layout_builder\Event\SectionComponentBuildRenderArrayEvent $event
++   *   The section component build render array event.
++   */
++  public function onBuildRender(SectionComponentBuildRenderArrayEvent $event): void {
++    if ($event->inPreview()) {
++      return;
++    }
++
++    $conditions = [];
++
++    $visibility = $event->getComponent()->get('visibility') ?: [];
++    foreach ($visibility as $uuid => $configuration) {
++      $condition = $this->conditionManager->createInstance($configuration['id'], $configuration);
++      if ($condition instanceof ContextAwarePluginInterface) {
++        $this->contextHandler->applyContextMapping($condition, $event->getContexts());
++      }
++      $event->addCacheableDependency($condition);
++      $conditions[$uuid] = $condition;
++    }
++
++    $visibility_operator = $event->getComponent()->get('visibility_operator') ?: 'and';
++
++    if ($conditions && !$this->resolveConditions($conditions, $visibility_operator)) {
++      // If conditions do not resolve, do not process other subscribers.
++      $event->stopPropagation();
++    }
++  }
++
++}
+diff --git a/core/modules/layout_builder/src/Form/BlockVisibilityForm.php b/core/modules/layout_builder/src/Form/BlockVisibilityForm.php
+new file mode 100644
+index 00000000000..81b426f3d4b
+--- /dev/null
++++ b/core/modules/layout_builder/src/Form/BlockVisibilityForm.php
+@@ -0,0 +1,285 @@
++<?php
++
++namespace Drupal\layout_builder\Form;
++
++use Drupal\Core\Ajax\AjaxFormHelperTrait;
++use Drupal\Core\Ajax\AjaxResponse;
++use Drupal\Core\Block\BlockPluginInterface;
++use Drupal\Core\Executable\ExecutableManagerInterface;
++use Drupal\Core\Form\FormBase;
++use Drupal\Core\Form\FormBuilderInterface;
++use Drupal\Core\Form\FormStateInterface;
++use Drupal\Core\Plugin\FilteredPluginManagerInterface;
++use Drupal\Core\Url;
++use Drupal\layout_builder\Context\LayoutBuilderContextTrait;
++use Drupal\layout_builder\Controller\LayoutRebuildTrait;
++use Drupal\layout_builder\LayoutBuilderHighlightTrait;
++use Drupal\layout_builder\LayoutTempstoreRepositoryInterface;
++use Drupal\layout_builder\SectionComponentTrait;
++use Drupal\layout_builder\SectionStorageInterface;
++use Symfony\Component\DependencyInjection\ContainerInterface;
++
++/**
++ * Provides a form for applying visibility conditions to a block.
++ *
++ * @internal
++ *   Form classes are internal.
++ */
++class BlockVisibilityForm extends FormBase {
++
++  use AjaxFormHelperTrait;
++  use LayoutBuilderContextTrait;
++  use LayoutBuilderHighlightTrait;
++  use LayoutRebuildTrait;
++  use SectionComponentTrait;
++
++  /**
++   * The section storage.
++   *
++   * @var \Drupal\layout_builder\SectionStorageInterface
++   */
++  protected $sectionStorage;
++
++  /**
++   * The layout section delta.
++   *
++   * @var int
++   */
++  protected $delta;
++
++  /**
++   * The uuid of the block component.
++   *
++   * @var string
++   */
++  protected $uuid;
++
++  /**
++   * Constructs a BlockVisibilityForm object.
++   */
++  public function __construct(
++    protected ExecutableManagerInterface|FilteredPluginManagerInterface $conditionManager,
++    protected FormBuilderInterface $formBuilder,
++    protected LayoutTempstoreRepositoryInterface $layoutTempstoreRepository,
++  ) {
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public static function create(ContainerInterface $container): self {
++    return new static(
++      $container->get('plugin.manager.condition'),
++      $container->get('form_builder'),
++      $container->get('layout_builder.tempstore_repository')
++    );
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getFormId(): string {
++    return 'layout_builder_block_visibility';
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function buildForm(array $form, FormStateInterface $form_state, ?SectionStorageInterface $section_storage = NULL, $delta = NULL, $uuid = NULL) {
++    $this->sectionStorage = $section_storage;
++    $this->delta = $delta;
++    $this->uuid = $uuid;
++
++    // Any visibility conditions that have already been added to the block.
++    $visibility_conditions_applied_to_block = $this->getCurrentComponent()->get('visibility') ?: [];
++
++    // Visibility condition types that can be added to a block.
++    $conditions_available_to_block = [];
++    foreach ($this->conditionManager->getFilteredDefinitions('layout_builder', $this->getPopulatedContexts($section_storage)) as $plugin_id => $definition) {
++      $conditions_available_to_block[$plugin_id] = $definition['label'];
++    }
++
++    $items = [];
++    foreach ($visibility_conditions_applied_to_block as $visibility_id => $configuration) {
++      /** @var \Drupal\Core\Condition\ConditionInterface $condition */
++      $condition = $this->conditionManager->createInstance($configuration['id'], $configuration);
++      $options = [
++        'attributes' => [
++          'class' => ['use-ajax'],
++          'data-dialog-type' => 'dialog',
++          'data-dialog-renderer' => 'off_canvas',
++          'data-outside-in-edit' => TRUE,
++        ],
++      ];
++      $items[$visibility_id] = [
++        'label' => $this->t('<strong>@condition_name:</strong> @condition_summary', [
++          '@condition_name' => $condition->getPluginDefinition()['label'],
++          '@condition_summary' => $condition->summary(),
++        ]),
++        'edit' => [
++          'data' => [
++            '#type' => 'link',
++            '#title' => $this->t('Edit'),
++            '#url' => Url::fromRoute('layout_builder.add_visibility', $this->getParameters($visibility_id), $options),
++          ],
++        ],
++        'delete' => [
++          'data' => [
++            '#type' => 'link',
++            '#title' => $this->t('Delete'),
++            '#url' => Url::fromRoute('layout_builder.delete_visibility', $this->getParameters($visibility_id), $options),
++          ],
++        ],
++      ];
++    }
++
++    if ($items) {
++      $form['visibility'] = [
++        '#prefix' => '<div class="configured-conditions">',
++        '#suffix' => '</div>',
++        '#theme' => 'table',
++        '#rows' => $items,
++        '#caption' => $this->t('Configured Conditions'),
++      ];
++    }
++
++    // Determines if multiple conditions should be applied with 'and' or 'or'.
++    $form['operator'] = [
++      '#type' => 'radios',
++      '#title' => $this->t('Operator'),
++      '#options' => [
++        'and' => $this->t('And'),
++        'or' => $this->t('Or'),
++      ],
++      '#default_value' => $this->getCurrentComponent()->get('visibility_operator') ?: 'and',
++      // This field is not necessary until multiple conditions are added.
++      '#access' => count($items) > 1,
++    ];
++
++    // This is a submit button that only appears once two or more visibility
++    // conditions are present. This submit button appears so the user can
++    // update the visibility operator, a setting that impacts the entire block.
++    // This is different than the default submit button/handler for this form,
++    // which is used to add a visibility condition to the block.
++    $form['update_operator'] = [
++      '#type' => 'submit',
++      '#access' => count($items) > 1,
++      '#value' => $this->t('Update operator'),
++      '#submit' => ['::updateOperator'],
++    ];
++
++    $form['add'] = [
++      '#type' => 'details',
++      '#title' => $this->t('Add a visibility condition'),
++      '#weight' => 20,
++    ];
++    $form['add']['conditions'] = [
++      '#theme' => 'item_list',
++      '#items' => [],
++    ];
++    foreach ($conditions_available_to_block as $condition_id => $condition_label) {
++      $parameters = $this->getParameters($condition_id);
++
++      $form['add']['conditions']['#items'][$condition_id] = [
++        '#type' => 'link',
++        '#title' => $condition_label,
++        '#url' => Url::fromRoute('layout_builder.add_visibility', $parameters, [
++          'attributes' => [
++            'class' => ['use-ajax'],
++            'data-dialog-type' => 'dialog',
++            'data-dialog-renderer' => 'off_canvas',
++            'data-outside-in-edit' => TRUE,
++          ],
++        ]),
++      ];
++    }
++
++    $form['#attributes']['data-layout-builder-target-highlight-id'] = $this->blockUpdateHighlightId($this->uuid);
++
++    if ($this->isAjax()) {
++      $form['update_operator']['#ajax']['callback'] = '::ajaxSubmit';
++    }
++
++    return $form;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  protected function successfulAjaxSubmit(array $form, FormStateInterface $form_state): AjaxResponse {
++    // The submit was triggered by the "update operator" button, just
++    // rebuild the layout UI and close the dialog.
++    return $this->rebuildAndClose($this->sectionStorage);
++  }
++
++  /**
++   * Submit handler for updating just the visibility operator.
++   *
++   * @param array $form
++   *   The form array.
++   * @param \Drupal\Core\Form\FormStateInterface $form_state
++   *   The form state object.
++   */
++  public function updateOperator(array $form, FormStateInterface $form_state): void {
++    $operator_value = $form_state->getValue('operator');
++    $component = $this->getCurrentComponent();
++    $component->set('visibility_operator', $operator_value);
++    $this->layoutTempstoreRepository->set($this->sectionStorage);
++    $form_state->setRedirectUrl($this->sectionStorage->getLayoutBuilderUrl());
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function submitForm(array &$form, FormStateInterface $form_state): void {
++    $parameters = $this->getParameters($form_state->getValue('condition'));
++    $operator = $form_state->getValue('operator');
++    $parameters['operator'] = $operator === 'or' ? $operator : 'and';
++    $url = new Url('layout_builder.add_visibility', $parameters);
++    $form_state->setRedirectUrl($url);
++  }
++
++  /**
++   * Gets the parameters needed for the various Url() and form invocations.
++   *
++   * @param string $visibility_id
++   *   The id of the visibility plugin.
++   *
++   * @return array
++   *   List of Url parameters.
++   */
++  protected function getParameters(string $visibility_id): array {
++    return [
++      'section_storage_type' => $this->sectionStorage->getStorageType(),
++      'section_storage' => $this->sectionStorage->getStorageId(),
++      'delta' => $this->delta,
++      'uuid' => $this->uuid,
++      'plugin_id' => $visibility_id,
++    ];
++  }
++
++  /**
++   * Provides a title callback.
++   *
++   * @param \Drupal\layout_builder\SectionStorageInterface $section_storage
++   *   The section storage.
++   * @param int $delta
++   *   The original delta of the section.
++   * @param string $uuid
++   *   The UUID of the block being updated.
++   *
++   * @return string
++   *   The title for the block visibility form.
++   */
++  public function title(SectionStorageInterface $section_storage, int $delta, string $uuid): string {
++    $block = $section_storage
++      ->getSection($delta)
++      ->getComponent($uuid)
++      ->getPlugin();
++
++    assert($block instanceof BlockPluginInterface);
++
++    return $this->t('Configure visibility rules for the @block_label block', ['@block_label' => $block->label()]);
++  }
++
++}
+diff --git a/core/modules/layout_builder/src/Form/ConfigureVisibilityForm.php b/core/modules/layout_builder/src/Form/ConfigureVisibilityForm.php
+new file mode 100644
+index 00000000000..4bac48dac45
+--- /dev/null
++++ b/core/modules/layout_builder/src/Form/ConfigureVisibilityForm.php
+@@ -0,0 +1,279 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Drupal\layout_builder\Form;
++
++use Drupal\Component\Uuid\UuidInterface;
++use Drupal\Core\Ajax\AjaxFormHelperTrait;
++use Drupal\Core\Ajax\AjaxResponse;
++use Drupal\Core\Condition\ConditionInterface;
++use Drupal\Core\Condition\ConditionManager;
++use Drupal\Core\Form\FormBase;
++use Drupal\Core\Form\FormStateInterface;
++use Drupal\Core\Form\SubformState;
++use Drupal\Core\Plugin\ContextAwarePluginAssignmentTrait;
++use Drupal\Core\Plugin\ContextAwarePluginInterface;
++use Drupal\Core\Plugin\PluginFormFactoryInterface;
++use Drupal\Core\Plugin\PluginFormInterface;
++use Drupal\Core\Plugin\PluginWithFormsInterface;
++use Drupal\Core\StringTranslation\TranslatableMarkup;
++use Drupal\Core\Url;
++use Drupal\layout_builder\Context\LayoutBuilderContextTrait;
++use Drupal\layout_builder\Controller\LayoutRebuildTrait;
++use Drupal\layout_builder\LayoutBuilderHighlightTrait;
++use Drupal\layout_builder\LayoutTempstoreRepositoryInterface;
++use Drupal\layout_builder\SectionComponentTrait;
++use Drupal\layout_builder\SectionStorageInterface;
++use Symfony\Component\DependencyInjection\ContainerInterface;
++
++/**
++ * Provides a form to configure a visibility condition.
++ *
++ * @internal
++ *   Form classes are internal.
++ */
++class ConfigureVisibilityForm extends FormBase {
++
++  use AjaxFormHelperTrait;
++  use ContextAwarePluginAssignmentTrait;
++  use LayoutBuilderContextTrait;
++  use LayoutBuilderHighlightTrait;
++  use LayoutRebuildTrait;
++  use SectionComponentTrait;
++
++  /**
++   * The section storage.
++   *
++   * @var \Drupal\layout_builder\SectionStorageInterface
++   */
++  protected $sectionStorage;
++
++  /**
++   * The layout section delta.
++   *
++   * @var int
++   */
++  protected $delta;
++
++  /**
++   * The uuid of the block component.
++   *
++   * @var string
++   */
++  protected $uuid;
++
++  /**
++   * The condition plugin being configured.
++   *
++   * @var \Drupal\Core\Condition\ConditionInterface
++   */
++  protected $condition;
++
++  /**
++   * The condition plugin being configured.
++   *
++   * @var \Drupal\Core\Condition\ConditionInterface
++   */
++  protected $configuration;
++
++  /**
++   * Constructs a ConfigureVisibilityForm object.
++   */
++  public function __construct(protected LayoutTempstoreRepositoryInterface $layoutTempstoreRepository, protected ConditionManager $conditionManager, protected UuidInterface $uuidGenerator, protected PluginFormFactoryInterface $pluginFormFactory) {
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public static function create(ContainerInterface $container): self {
++    return new static(
++      $container->get('layout_builder.tempstore_repository'),
++      $container->get('plugin.manager.condition'),
++      $container->get('uuid'),
++      $container->get('plugin_form.factory')
++    );
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getFormId(): string {
++    return 'layout_builder_configure_visibility';
++  }
++
++  /**
++   * Prepares the condition plugin based on the condition ID.
++   *
++   * @param string $condition_id
++   *   A condition UUID, or the plugin ID used to create a new condition.
++   * @param array $value
++   *   The condition configuration.
++   *
++   * @return \Drupal\Core\Condition\ConditionInterface
++   *   The condition plugin.
++   */
++  protected function prepareCondition($condition_id, array $value): ConditionInterface {
++    if ($value) {
++      return $this->conditionManager->createInstance($value['id'], $value);
++    }
++    /** @var \Drupal\Core\Condition\ConditionInterface $condition */
++    $condition = $this->conditionManager->createInstance($condition_id);
++    $configuration = $condition->getConfiguration();
++    $configuration['uuid'] = $this->uuidGenerator->generate();
++    $condition->setConfiguration($configuration);
++    return $condition;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function buildForm(array $form, FormStateInterface $form_state, ?SectionStorageInterface $section_storage = NULL, $delta = NULL, $uuid = NULL, $plugin_id = NULL): array {
++    $this->sectionStorage = $section_storage;
++    $this->delta = $delta;
++    $this->uuid = $uuid;
++
++    $visibility_conditions = $this->getCurrentComponent()->get('visibility');
++    $configuration = !empty($visibility_conditions[$plugin_id]) ? $visibility_conditions[$plugin_id] : [];
++    $this->configuration = $configuration;
++    $this->condition = $this->prepareCondition($plugin_id, $configuration);
++
++    $form_state->setTemporaryValue('gathered_contexts', $this->getPopulatedContexts($section_storage));
++
++    $form['#tree'] = TRUE;
++    $form['settings'] = [];
++    $subform_state = SubformState::createForSubform($form['settings'], $form, $form_state);
++    $form['settings'] = $this->getConditionPluginForm($this->condition)->buildConfigurationForm($form['settings'], $subform_state);
++    $form['settings']['id'] = [
++      '#type' => 'value',
++      '#value' => $this->condition->getPluginId(),
++    ];
++
++    $form['actions']['submit'] = [
++      '#type' => 'submit',
++      '#value' => $configuration ? $this->t('Update') : $this->t('Add condition'),
++      '#button_type' => 'primary',
++    ];
++
++    // If one is not already present, add a hidden field with the value of
++    // the operator field from BlockVisibilityForm - the form that precedes
++    // this one when adding/updating a visibility condition.
++    if (!$form_state->getValue('operator')) {
++      // Get the input values from the form that preceded this one.
++      $user_input = $form_state->getUserInput();
++      $form['operator']['#type'] = 'hidden';
++      if (isset($user_input['operator']) && $user_input['operator'] === 'or') {
++        $form['operator']['#value'] = $user_input['operator'];
++      }
++      else {
++        $form['operator']['#value'] = 'and';
++      }
++    }
++
++    $form['back_button'] = [
++      '#type' => 'link',
++      '#url' => Url::fromRoute('layout_builder.visibility',
++        [
++          'section_storage_type' => $section_storage->getStorageType(),
++          'section_storage' => $section_storage->getStorageId(),
++          'delta' => $delta,
++          'uuid' => $uuid,
++        ]
++      ),
++      '#title' => $this->t('Back'),
++    ];
++
++    $form['#attributes']['data-layout-builder-target-highlight-id'] = $this->blockUpdateHighlightId($this->uuid);
++
++    if ($this->isAjax()) {
++      $form['actions']['submit']['#ajax']['callback'] = '::ajaxSubmit';
++      $form['back_button']['#attributes'] = [
++        'class' => ['use-ajax'],
++        'data-dialog-type' => 'dialog',
++        'data-dialog-renderer' => 'off_canvas',
++      ];
++    }
++
++    return $form;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function validateForm(array &$form, FormStateInterface $form_state): void {
++    $subform_state = SubformState::createForSubform($form['settings'], $form, $form_state);
++    $this->getConditionPluginForm($this->condition)->validateConfigurationForm($form['settings'], $subform_state);
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function submitForm(array &$form, FormStateInterface $form_state): void {
++    // Call the plugin submit handler.
++    $subform_state = SubformState::createForSubform($form['settings'], $form, $form_state);
++    $this->getConditionPluginForm($this->condition)->submitConfigurationForm($form, $subform_state);
++
++    // If this block is context-aware, set the context mapping.
++    if ($this->condition instanceof ContextAwarePluginInterface) {
++      $this->condition->setContextMapping($subform_state->getValue('context_mapping', []));
++    }
++
++    $configuration = $this->condition->getConfiguration();
++
++    $component = $this->getCurrentComponent();
++    $visibility_conditions = $component->get('visibility');
++    $visibility_conditions[$configuration['uuid']] = $configuration;
++    $component->set('visibility', $visibility_conditions);
++    $component->set('visibility_operator', $form_state->getValue('operator'));
++
++    $this->layoutTempstoreRepository->set($this->sectionStorage);
++    $form_state->setRedirectUrl($this->sectionStorage->getLayoutBuilderUrl());
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  protected function successfulAjaxSubmit(array $form, FormStateInterface $form_state): AjaxResponse {
++    return $this->rebuildAndClose($this->sectionStorage);
++  }
++
++  /**
++   * Retrieves the plugin form for a given condition.
++   *
++   * @param \Drupal\Core\Condition\ConditionInterface $condition
++   *   The condition plugin.
++   *
++   * @return \Drupal\Core\Plugin\PluginFormInterface
++   *   The plugin form for the condition.
++   */
++  protected function getConditionPluginForm(ConditionInterface $condition): PluginFormInterface {
++    if ($condition instanceof PluginWithFormsInterface) {
++      return $this->pluginFormFactory->createInstance($condition, 'configure');
++    }
++    return $condition;
++  }
++
++  /**
++   * Provides a title callback.
++   *
++   * @param \Drupal\layout_builder\SectionStorageInterface $section_storage
++   *   The section storage.
++   * @param int $delta
++   *   The original delta of the section.
++   * @param string $uuid
++   *   The UUID of the block being updated.
++   *
++   * @return \Drupal\Core\StringTranslation\TranslatableMarkup
++   *   The title for the block visibility form.
++   */
++  public function title(SectionStorageInterface $section_storage, $delta, $uuid): TranslatableMarkup {
++    $block_label = $section_storage
++      ->getSection($delta)
++      ->getComponent($uuid)
++      ->getPlugin()
++      ->label();
++
++    return $this->t('Configure visibility rule for the @block_label block', ['@block_label' => $block_label]);
++  }
++
++}
+diff --git a/core/modules/layout_builder/src/Form/DeleteVisibilityForm.php b/core/modules/layout_builder/src/Form/DeleteVisibilityForm.php
+new file mode 100644
+index 00000000000..58705455c3f
+--- /dev/null
++++ b/core/modules/layout_builder/src/Form/DeleteVisibilityForm.php
+@@ -0,0 +1,209 @@
++<?php
++
++namespace Drupal\layout_builder\Form;
++
++use Drupal\Core\Ajax\AjaxFormHelperTrait;
++use Drupal\Core\Ajax\AjaxResponse;
++use Drupal\Core\Ajax\OpenOffCanvasDialogCommand;
++use Drupal\Core\Form\ConfirmFormBase;
++use Drupal\Core\Form\FormStateInterface;
++use Drupal\Core\StringTranslation\TranslatableMarkup;
++use Drupal\Core\Url;
++use Drupal\layout_builder\Controller\LayoutRebuildTrait;
++use Drupal\layout_builder\LayoutBuilderHighlightTrait;
++use Drupal\layout_builder\LayoutTempstoreRepositoryInterface;
++use Drupal\layout_builder\SectionComponentTrait;
++use Drupal\layout_builder\SectionStorageInterface;
++
++use Symfony\Component\DependencyInjection\ContainerInterface;
++
++/**
++ * Provides a form to delete a visibility condition.
++ *
++ * @internal
++ *   Form classes are internal.
++ */
++class DeleteVisibilityForm extends ConfirmFormBase {
++
++  use AjaxFormHelperTrait;
++  use LayoutBuilderHighlightTrait;
++  use LayoutRebuildTrait;
++  use SectionComponentTrait;
++
++  /**
++   * The layout tempstore repository.
++   *
++   * @var \Drupal\layout_builder\LayoutTempstoreRepositoryInterface
++   */
++  protected $layoutTempstoreRepository;
++
++  /**
++   * The section storage.
++   *
++   * @var \Drupal\layout_builder\SectionStorageInterface
++   */
++  protected $sectionStorage;
++
++  /**
++   * The layout section delta.
++   *
++   * @var int
++   */
++  protected $delta;
++
++  /**
++   * The uuid of the block component.
++   *
++   * @var string
++   */
++  protected $uuid;
++
++
++  /**
++   * The plugin id of the condition to be removed.
++   *
++   * @var string
++   */
++  protected $pluginId;
++
++  /**
++   * Constructs a DeleteVisibilityForm object.
++   *
++   * @param \Drupal\layout_builder\LayoutTempstoreRepositoryInterface $layout_tempstore_repository
++   *   The layout tempstore repository.
++   */
++  public function __construct(LayoutTempstoreRepositoryInterface $layout_tempstore_repository) {
++    $this->layoutTempstoreRepository = $layout_tempstore_repository;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public static function create(ContainerInterface $container): self {
++    return new static(
++      $container->get('layout_builder.tempstore_repository')
++    );
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function buildForm(array $form, FormStateInterface $form_state, ?SectionStorageInterface $section_storage = NULL, $delta = NULL, $uuid = NULL, $plugin_id = NULL): array {
++    $this->sectionStorage = $section_storage;
++    $this->delta = $delta;
++    $this->uuid = $uuid;
++    $this->pluginId = $plugin_id;
++    $form = parent::buildForm($form, $form_state);
++    $form['actions']['cancel'] = $this->buildCancelLink();
++    $form['#attributes']['data-layout-builder-target-highlight-id'] = $this->blockUpdateHighlightId($this->uuid);
++    if ($this->isAjax()) {
++      $form['actions']['submit']['#ajax']['callback'] = '::ajaxSubmit';
++    }
++    return $form;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getQuestion(): TranslatableMarkup {
++    return $this->t('Are you sure you want to delete this visibility condition?');
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getCancelUrl(): Url {
++    $parameters = $this->getParameters();
++    return new Url('layout_builder.visibility', $parameters);
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getFormId(): string {
++    return 'layout_builder_delete_visibility';
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function submitForm(array &$form, FormStateInterface $form_state): void {
++    $component = $this->getCurrentComponent();
++    $visibility_conditions = $component->get('visibility');
++    unset($visibility_conditions[$this->pluginId]);
++    $component->set('visibility', $visibility_conditions);
++    $this->layoutTempstoreRepository->set($this->sectionStorage);
++    $form_state->setRedirectUrl($this->sectionStorage->getLayoutBuilderUrl());
++  }
++
++  /**
++   * Build a cancel button for the confirm form.
++   */
++  protected function buildCancelLink(): array {
++    return [
++      '#type' => 'button',
++      '#value' => $this->getCancelText(),
++      '#ajax' => [
++        'callback' => '::ajaxCancel',
++      ],
++    ];
++  }
++
++  /**
++   * Provides an ajax callback for the cancel button.
++   */
++  public function ajaxCancel(array &$form, FormStateInterface $form_state): AjaxResponse {
++    $parameters = $this->getParameters();
++    $new_form = \Drupal::formBuilder()->getForm(BlockVisibilityForm::class, $this->sectionStorage, $parameters['delta'], $parameters['uuid']);
++    $new_form['#action'] = $this->getCancelUrl()->toString();
++    $response = new AjaxResponse();
++    $response->addCommand(new OpenOffCanvasDialogCommand($this->t('Delete condition'), $new_form));
++    return $response;
++  }
++
++  /**
++   * Gets the parameters needed for the various Url() and form invocations.
++   *
++   * @return array
++   *   List of Url parameters.
++   */
++  protected function getParameters(): array {
++    return [
++      'section_storage_type' => $this->sectionStorage->getStorageType(),
++      'section_storage' => $this->sectionStorage->getStorageId(),
++      'delta' => $this->delta,
++      'uuid' => $this->uuid,
++    ];
++  }
++
++  /**
++   * Provides a title callback.
++   *
++   * @param \Drupal\layout_builder\SectionStorageInterface $section_storage
++   *   The section storage.
++   * @param int $delta
++   *   The original delta of the section.
++   * @param string $uuid
++   *   The UUID of the block being updated.
++   *
++   * @return string
++   *   The title for the block visibility form.
++   */
++  public function title(SectionStorageInterface $section_storage, $delta, $uuid): TranslatableMarkup {
++    $block_label = $section_storage
++      ->getSection($delta)
++      ->getComponent($uuid)
++      ->getPlugin()
++      ->label();
++
++    return $this->t('Delete visibility rule for the @block_label block', ['@block_label' => $block_label]);
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  protected function successfulAjaxSubmit(array $form, FormStateInterface $form_state): AjaxResponse {
++    return $this->rebuildAndClose($this->sectionStorage);
++  }
++
++}
+diff --git a/core/modules/layout_builder/src/SectionComponentTrait.php b/core/modules/layout_builder/src/SectionComponentTrait.php
+new file mode 100644
+index 00000000000..06668c0b51e
+--- /dev/null
++++ b/core/modules/layout_builder/src/SectionComponentTrait.php
+@@ -0,0 +1,51 @@
++<?php
++
++namespace Drupal\layout_builder;
++
++/**
++ * Methods for retrieving sections and components from layouts.
++ */
++trait SectionComponentTrait {
++
++  /**
++   * The section storage.
++   *
++   * @var \Drupal\layout_builder\SectionStorageInterface
++   */
++  protected $sectionStorage;
++
++  /**
++   * The layout section delta.
++   *
++   * @var int
++   */
++  protected $delta;
++
++  /**
++   * The uuid of the block component.
++   *
++   * @var string
++   */
++  protected $uuid;
++
++  /**
++   * Retrieves the current layout section being edited by the form.
++   *
++   * @return \Drupal\layout_builder\Section
++   *   The current layout section.
++   */
++  public function getCurrentSection() {
++    return $this->sectionStorage->getSection($this->delta);
++  }
++
++  /**
++   * Retrieves the current component being edited by the form.
++   *
++   * @return \Drupal\layout_builder\SectionComponent
++   *   The current section component.
++   */
++  public function getCurrentComponent() {
++    return $this->getCurrentSection()->getComponent($this->uuid);
++  }
++
++}
+diff --git a/core/modules/layout_builder/tests/src/FunctionalJavascript/BlockVisibilityTest.php b/core/modules/layout_builder/tests/src/FunctionalJavascript/BlockVisibilityTest.php
+new file mode 100644
+index 00000000000..78c9618916f
+--- /dev/null
++++ b/core/modules/layout_builder/tests/src/FunctionalJavascript/BlockVisibilityTest.php
+@@ -0,0 +1,330 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Drupal\Tests\layout_builder\FunctionalJavascript;
++
++use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
++use Drupal\Tests\contextual\FunctionalJavascript\ContextualLinkClickTrait;
++use PHPUnit\Framework\Attributes\Group;
++use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
++
++// cspell:ignore fieldnid blocknodebundle fieldbody
++
++/**
++ * Test layout block visibility functionality.
++ */
++#[Group('layout_builder')]
++#[RunTestsInSeparateProcesses]
++class BlockVisibilityTest extends WebDriverTestBase {
++
++  use ContextualLinkClickTrait;
++
++  /**
++   * {@inheritdoc}
++   */
++  protected $defaultTheme = 'olivero';
++
++  /**
++   * {@inheritdoc}
++   */
++  protected static $modules = [
++    'field_ui',
++    'layout_builder',
++    'node',
++    'contextual',
++  ];
++
++  /**
++   * Path prefix for the field UI for the test bundle.
++   *
++   * @var string
++   */
++  protected const FIELD_UI_PREFIX = 'admin/structure/types/manage/bundle_with_section_field';
++
++  /**
++   * CSS selector for the body field block.
++   *
++   * @var string
++   */
++  protected const BODY_FIELD_BLOCK_SELECTOR = '.block-field-blocknodebundle-with-section-fieldbody';
++
++  /**
++   * {@inheritdoc}
++   */
++  protected function setUp(): void {
++    parent::setUp();
++
++    $this->createContentType(['type' => 'bundle_with_section_field']);
++
++    $this->drupalLogin($this->drupalCreateUser([
++      'configure any layout',
++      'create and edit custom blocks',
++      'administer node display',
++      'administer node fields',
++      'access contextual links',
++    ]));
++
++    // Enable layout builder.
++    $this->drupalGet(static::FIELD_UI_PREFIX . '/display/default');
++    $this->submitForm(
++      ['layout[enabled]' => TRUE],
++      'Save'
++    );
++
++    $this->createNode([
++      'type' => 'bundle_with_section_field',
++      'body' => [
++        [
++          'value' => 'The node body',
++        ],
++      ],
++    ])->save();
++
++    $this->createNode([
++      'type' => 'bundle_with_section_field',
++      'body' => [
++        [
++          'value' => 'The node body',
++        ],
++      ],
++    ])->save();
++  }
++
++  /**
++   * Tests conditional visibility.
++   */
++  public function testConditionalVisibility(): void {
++    $assert_session = $this->assertSession();
++    $page = $this->getSession()->getPage();
++
++    // Remove all of the sections from the page.
++    $this->drupalGet(static::FIELD_UI_PREFIX . '/display/default/layout');
++
++    $page->clickLink('Remove Section 1');
++    $assert_session->assertWaitOnAjaxRequest();
++    $page->pressButton('Remove');
++    $assert_session->assertWaitOnAjaxRequest();
++    // Assert that there are no sections on the page.
++    $assert_session->pageTextNotContains('Remove Section 1');
++    $assert_session->pageTextNotContains('Add block');
++
++    $page->clickLink('Add section');
++    $assert_session->assertWaitOnAjaxRequest();
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '#drupal-off-canvas'));
++
++    $page->clickLink('Three column');
++    $assert_session->assertWaitOnAjaxRequest();
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '.layout-builder-configure-section'));
++    $page->pressButton('Add section');
++
++    $blocks_in_layout = [
++      [
++        'label' => 'ID',
++        'region_selector' => '.layout__region--first',
++        'rendered_block_selector' => '.block-field-blocknodebundle-with-section-fieldnid',
++      ],
++      [
++        'label' => 'Powered by Drupal',
++        'region_selector' => '.layout__region--second',
++        'rendered_block_selector' => '.block-system-powered-by-block',
++      ],
++      [
++        'label' => 'Body',
++        'region_selector' => '.layout__region--third',
++        'rendered_block_selector' => '.block-field-blocknodebundle-with-section-fieldbody',
++      ],
++    ];
++
++    foreach ($blocks_in_layout as $block) {
++      $rendered_block_selector = $block['rendered_block_selector'];
++      $this->addBlock($block['label'], $block['region_selector'], "#layout-builder $rendered_block_selector");
++    }
++
++    $page->pressButton('Save layout');
++
++    foreach (['node/1', 'node/2'] as $path) {
++      $this->drupalGet($path);
++      foreach ($blocks_in_layout as $block) {
++        $this->assertSession()->elementExists('css', $block['rendered_block_selector']);
++      }
++      $assert_session->pageTextContains('The node body');
++    }
++
++    $this->drupalGet(static::FIELD_UI_PREFIX . '/display/default/layout');
++
++    // Confirm "Control visibility" contextual links available on each block.
++    foreach ($blocks_in_layout as $block) {
++      $rendered_block_selector = $block['rendered_block_selector'];
++      $block_element = $page->find('css', "#layout-builder $rendered_block_selector");
++      $block_element->hasLink('Control visibility');
++    }
++
++    // Test Request Path visibility rule.
++    $this->beginAddCondition('Request Path');
++    $page->checkField('settings[negate]');
++    $page->findField('settings[pages]')->setValue('/node/2');
++    $page->pressButton('Add condition');
++    $assert_session->assertWaitOnAjaxRequest();
++    $page->pressButton('Save layout');
++    $this->drupalGet('node/1');
++    $assert_session->pageTextContains('The node body');
++    $this->drupalGet('node/2');
++    $assert_session->pageTextNotContains('The node body');
++
++    // Confirm that editing an existing condition works.
++    $this->drupalGet(static::FIELD_UI_PREFIX . '/display/default/layout');
++    $this->clickContextualLink(static::BODY_FIELD_BLOCK_SELECTOR, 'Control visibility');
++    $assert_session->assertWaitOnAjaxRequest();
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '#drupal-off-canvas'));
++    $page->clickLink('Edit');
++    $assert_session->assertWaitOnAjaxRequest();
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '[value="Update"]'));
++    $page->findField('settings[pages]')->setValue('/node/1');
++    $page->pressButton('Update');
++    $assert_session->assertWaitOnAjaxRequest();
++    $page->pressButton('Save layout');
++    $this->drupalGet('node/1');
++    $assert_session->pageTextNotContains('The node body');
++    $this->drupalGet('node/2');
++    $assert_session->pageTextContains('The node body');
++
++    // Confirm 'or' operator works ('and' is the default operator)
++    $this->beginAddCondition('Request Path');
++    $page->checkField('settings[negate]');
++    $page->findField('settings[pages]')->setValue('/node/2');
++    $page->pressButton('Add condition');
++    $assert_session->assertWaitOnAjaxRequest();
++    $this->clickContextualLink(static::BODY_FIELD_BLOCK_SELECTOR, 'Control visibility');
++    $assert_session->assertWaitOnAjaxRequest();
++    $page->findField('operator')->setValue('or');
++    $page->pressButton('Update operator');
++    $assert_session->assertWaitOnAjaxRequest();
++    $page->pressButton('Save layout');
++    $this->drupalGet('node/1');
++    $assert_session->pageTextContains('The node body');
++    $this->drupalGet('node/2');
++    $assert_session->pageTextContains('The node body');
++
++    // Test Current Theme visibility rule.
++    $this->removeVisibilityConditions();
++    $this->beginAddCondition('Current Theme');
++    $page->checkField('settings[negate]');
++    $page->findField('settings[theme]')->setValue('olivero');
++    $page->pressButton('Add condition');
++    $assert_session->assertWaitOnAjaxRequest();
++    $page->pressButton('Save layout');
++    $this->drupalGet('node/1');
++    $assert_session->pageTextNotContains('The node body');
++    $this->drupalGet('node/2');
++    $assert_session->pageTextNotContains('The node body');
++
++    // Test User Role visibility rule.
++    $this->removeVisibilityConditions();
++    $this->beginAddCondition('User Role');
++    $page->checkField('settings[negate]');
++    $page->checkField('settings[roles][anonymous]');
++    $page->pressButton('Add condition');
++    $assert_session->assertWaitOnAjaxRequest();
++    $page->pressButton('Save layout');
++    $this->drupalGet('node/1');
++    $assert_session->pageTextContains('The node body');
++    $this->drupalGet('node/2');
++    $assert_session->pageTextContains('The node body');
++
++    $this->drupalLogout();
++
++    $this->drupalGet('node/1');
++    $assert_session->pageTextNotContains('The node body');
++    $this->drupalGet('node/2');
++    $assert_session->pageTextNotContains('The node body');
++  }
++
++  /**
++   * Begins adding a visibility condition to the body field block.
++   *
++   * @param string $condition
++   *   The visibility condition to add.
++   */
++  protected function beginAddCondition(string $condition): void {
++    $assert_session = $this->assertSession();
++    $page = $this->getSession()->getPage();
++
++    $this->drupalGet(static::FIELD_UI_PREFIX . '/display/default/layout');
++    $this->clickContextualLink(static::BODY_FIELD_BLOCK_SELECTOR, 'Control visibility');
++    $assert_session->assertWaitOnAjaxRequest();
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '#drupal-off-canvas'));
++    $page->pressButton('Add a visibility condition');
++    $page->clickLink($condition);
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '[value="Add condition"]'));
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '[name="settings[negate]"]'));
++  }
++
++  /**
++   * Removes the visibility rules from the body field block.
++   */
++  protected function removeVisibilityConditions(): void {
++    $assert_session = $this->assertSession();
++    $page = $this->getSession()->getPage();
++
++    $this->drupalGet(static::FIELD_UI_PREFIX . '/display/default/layout');
++    $this->clickContextualLink(static::BODY_FIELD_BLOCK_SELECTOR, 'Control visibility');
++    $assert_session->assertWaitOnAjaxRequest();
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '#drupal-off-canvas'));
++    $page->clickLink('Delete');
++    $assert_session->assertWaitOnAjaxRequest();
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '[value="Confirm"]'));
++    $page->pressButton('Confirm');
++    $assert_session->assertWaitOnAjaxRequest();
++
++    // If multiple conditions present, this method will need to run again.
++    $this->clickContextualLink(static::BODY_FIELD_BLOCK_SELECTOR, 'Control visibility');
++    $assert_session->assertWaitOnAjaxRequest();
++    $close_button = $assert_session->waitForElementVisible('css', '[title="Close"]');
++    if ($page->hasLink('Delete')) {
++      $close_button->click();
++      $this->removeVisibilityConditions();
++    }
++    else {
++      $page->pressButton('Save layout');
++      $this->drupalGet('node/1');
++      $assert_session->pageTextContains('The node body');
++      $this->drupalGet('node/2');
++      $assert_session->pageTextContains('The node body');
++    }
++  }
++
++  /**
++   * Adds a block in the Layout Builder.
++   *
++   * @param string $block_link_text
++   *   The link text to add the block.
++   * @param string $region_selector
++   *   The link text to add the block.
++   * @param string $rendered_locator
++   *   The CSS locator to confirm the block was rendered.
++   */
++  protected function addBlock($block_link_text, $region_selector, $rendered_locator): void {
++    $assert_session = $this->assertSession();
++    $page = $this->getSession()->getPage();
++
++    // Add a new block.
++    $add_block_link_selector = "#layout-builder $region_selector a:contains('Add block')";
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', $add_block_link_selector));
++
++    $add_block_link = $page->find('css', $add_block_link_selector);
++    $add_block_link->click();
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '#drupal-off-canvas'));
++    $assert_session->assertWaitOnAjaxRequest();
++    $page->clickLink($block_link_text);
++
++    // Wait for off-canvas dialog to reopen with block form.
++    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '.layout-builder-add-block'));
++    $assert_session->assertWaitOnAjaxRequest();
++    $page->pressButton('Add block');
++
++    // Wait for block form to be rendered in the Layout Builder.
++    $this->assertNotEmpty($assert_session->waitForElement('css', $rendered_locator));
++  }
++
++}
+diff --git a/core/modules/layout_builder/tests/src/Unit/EventSubscriber/SectionComponentVisibilityTest.php b/core/modules/layout_builder/tests/src/Unit/EventSubscriber/SectionComponentVisibilityTest.php
+new file mode 100644
+index 00000000000..6147a19051e
+--- /dev/null
++++ b/core/modules/layout_builder/tests/src/Unit/EventSubscriber/SectionComponentVisibilityTest.php
+@@ -0,0 +1,236 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Drupal\Tests\layout_builder\Unit\EventSubscriber;
++
++use Drupal\Component\Plugin\Context\Context;
++use Drupal\Component\Plugin\Exception\PluginNotFoundException;
++use Drupal\Component\Plugin\PluginInspectionInterface;
++use Drupal\Component\Uuid\Php as UuidFactory;
++use Drupal\Core\Cache\NullBackend;
++use Drupal\Core\Condition\ConditionInterface;
++use Drupal\Core\Condition\ConditionManager;
++use Drupal\Core\DependencyInjection\ContainerBuilder;
++use Drupal\Core\Extension\ModuleHandlerInterface;
++use Drupal\Core\Plugin\Context\ContextDefinition;
++use Drupal\Core\Plugin\Context\ContextHandler;
++use Drupal\Core\Plugin\ContextAwarePluginInterface;
++use Drupal\Core\TypedData\DataDefinition;
++use Drupal\Core\TypedData\Plugin\DataType\StringData;
++use Drupal\Core\TypedData\TypedDataManager;
++use Drupal\layout_builder\Event\SectionComponentBuildRenderArrayEvent;
++use Drupal\layout_builder\EventSubscriber\SectionComponentVisibility;
++use Drupal\layout_builder\SectionComponent;
++use Drupal\Tests\UnitTestCase;
++use PHPUnit\Framework\Attributes\CoversClass;
++use PHPUnit\Framework\Attributes\DataProvider;
++use PHPUnit\Framework\Attributes\Group;
++
++/**
++ * Covers class responsible for section component visibility.
++ */
++#[CoversClass(SectionComponentVisibility::class)]
++#[Group('layout_builder')]
++class SectionComponentVisibilityTest extends UnitTestCase {
++
++  /**
++   * The condition plugin manager.
++   *
++   * @var \Drupal\Core\Executable\ExecutableManagerInterface|\PHPUnit\Framework\MockObject\MockObject
++   */
++  protected $conditionManager;
++
++  /**
++   * {@inheritdoc}
++   */
++  public function setUp(): void {
++    parent::setUp();
++
++    $typed_data_manager = $this->prophesize(TypedDataManager::class);
++    $container = new ContainerBuilder();
++    $container->set('typed_data_manager', $typed_data_manager->reveal());
++    \Drupal::setContainer($container);
++
++    $this->conditionManager = new ConditionManager(
++      new \ArrayIterator([]),
++      new NullBackend('null'),
++      $this->prophesize(ModuleHandlerInterface::class)->reveal()
++    );
++  }
++
++  /**
++   * Ensure that nothing happens when previewing.
++   */
++  public function testOnBuildRenderPreview(): void {
++    $subscriber = new SectionComponentVisibility(
++      new ContextHandler(),
++      $this->conditionManager
++    );
++    $event = $this->prophesize(SectionComponentBuildRenderArrayEvent::class);
++    // Assert that when not in preview, the event is ignored. We do this by
++    // asserting that in preview is called and nothing else.
++    $event->inPreview()->shouldBeCalled();
++
++    $component = new SectionComponent('', 'top');
++    $event->getComponent()->willReturn($component);
++    $subscriber->onBuildRender($event->reveal());
++  }
++
++  /**
++   * Ensure no conditions are applied when visibility isn't set.
++   */
++  public function testOnBuildRenderNonPreviewEmpty(): void {
++    $subscriber = new SectionComponentVisibility(
++      new ContextHandler(),
++      $this->conditionManager
++    );
++    $event = $this->prophesize(SectionComponentBuildRenderArrayEvent::class);
++    // We're not in a preview.
++    $event->inPreview()->willReturn(FALSE);
++
++    $component = new SectionComponent('', 'top');
++    $event->getComponent()->willReturn($component);
++    $event->stopPropagation()->shouldNotBeCalled();
++    $subscriber->onBuildRender($event->reveal());
++  }
++
++  /**
++   * Ensure no conditions are applied when visibility isn't set.
++   */
++  public function testOnBuildRenderNonPreviewBadPlugin(): void {
++    $subscriber = new SectionComponentVisibility(
++      new ContextHandler(),
++      $this->conditionManager
++    );
++    $event = $this->prophesize(SectionComponentBuildRenderArrayEvent::class);
++    // We're not in a preview.
++    $event->inPreview()->willReturn(FALSE);
++
++    // Build a component so we can set properties.
++    $component = new SectionComponent('', 'top');
++    $component->set('visibility', [
++      'uuid' => ['id' => 'plugin_dne'],
++    ]);
++    $event->getComponent()->willReturn($component);
++
++    $this->expectException(PluginNotFoundException::class);
++    $this->expectExceptionMessage('The "plugin_dne" plugin does not exist.');
++    $subscriber->onBuildRender($event->reveal());
++  }
++
++  /**
++   * Ensure context aware plugins get their context applied.
++   */
++  public function testOnBuildRenderNonPreviewResolveContextAware(): void {
++    // Mock context aware plugin that will be used to assert we receive context.
++    $context_aware_plugin = $this->prophesize(ConditionInterface::class)
++      ->willImplement(ContextAwarePluginInterface::class);
++
++    // Set our mock condition manager to return the context plugin.
++    $condition_manager = $this->prophesize(ConditionManager::class);
++    $condition_manager->createInstance('context_aware', ['id' => 'context_aware'])
++      ->willReturn($context_aware_plugin->reveal());
++    $event = $this->prophesize(SectionComponentBuildRenderArrayEvent::class);
++    // We're not in a preview.
++    $event->inPreview()->willReturn(FALSE);
++
++    // Build a component with our "context_aware" plugin in the visibility.
++    $component = new SectionComponent('', 'top');
++    $component->set('visibility', [
++      'uuid' => ['id' => 'context_aware'],
++    ]);
++    $event->getComponent()->willReturn($component);
++
++    // Setup a context array.
++    $context_definition = new ContextDefinition();
++    $context_data = StringData::createInstance(DataDefinition::create('string'));
++    $context_data->setValue('foo');
++    $context = [
++      'bar' => new Context($context_definition, $context_data),
++    ];
++
++    // Make sure the context is returned by the event.
++    $event->getContexts()->willReturn($context);
++
++    // Steps that will be called in the process of resolving context.
++    $event->addCacheableDependency($context_aware_plugin)
++      ->shouldBeCalled();
++    $context_aware_plugin->setContext('bar', $context['bar'])
++      ->shouldBeCalled();
++    $context_aware_plugin->execute()->willReturn(TRUE);
++    $context_aware_plugin->getContextMapping()->willReturn([]);
++    $context_aware_plugin->getContext('bar')->willReturn(NULL);
++    // We want the "bar" context.
++    $context_aware_plugin->getContextDefinitions()
++      ->willReturn(['bar' => $context_definition]);
++
++    // Run the onBuildRender handler so things run.
++    (new SectionComponentVisibility(
++      new ContextHandler(),
++      $condition_manager->reveal()
++    ))->onBuildRender($event->reveal());
++  }
++
++  /**
++   * Ensure visibility plugins control event propagation.
++   */
++  #[DataProvider('buildRenderResolves')]
++  public function testOnBuildRenderNonPreviewResolve($result, $context_results): void {
++    $uuid_factory = new UuidFactory();
++    $visibility_def = [];
++
++    $event = $this->prophesize(SectionComponentBuildRenderArrayEvent::class);
++
++    // Set our mock condition manager to return the context plugin.
++    $condition_manager = $this->prophesize(ConditionManager::class);
++    foreach ($context_results as $plugin_id => $plugin_result) {
++      $plugin = $this->prophesize(ConditionInterface::class);
++      $condition_manager->createInstance($plugin_id, ['id' => $plugin_id])
++        ->willReturn($plugin->reveal());
++      $plugin->execute()->willReturn($plugin_result);
++      $visibility_def[$uuid_factory->generate()] = ['id' => $plugin_id];
++      $event->addCacheableDependency($plugin)->shouldBeCalled();
++    }
++
++    // We're not in a preview.
++    $event->inPreview()->willReturn(FALSE);
++
++    // Build a component with our "context_aware" plugin in the visibility.
++    $component = new SectionComponent('', 'top');
++    $component->set('visibility', $visibility_def);
++    $event->getComponent()->willReturn($component);
++
++    // Assert different propagation outcomes.
++    if ($result) {
++      $event->stopPropagation()->shouldNotBeCalled();
++    }
++    else {
++      $event_plugin = $this->prophesize(PluginInspectionInterface::class)->reveal();
++      $event->stopPropagation()->shouldBeCalled();
++      $event->getPlugin()->willReturn($event_plugin);
++    }
++
++    // Run the onBuildRender handler so things run.
++    (new SectionComponentVisibility(
++      new ContextHandler(),
++      $condition_manager->reveal()
++    ))->onBuildRender($event->reveal());
++
++  }
++
++  /**
++   * Data Provider for testOnBuildRenderNonPreviewResolve().
++   *
++   * @return array
++   *   Method parameters for testOnBuildRenderNonPreviewResolve().
++   */
++  public static function buildRenderResolves(): array {
++    return [
++      [TRUE, ['foo' => TRUE, 'bar' => TRUE]],
++      [FALSE, ['foo' => TRUE, 'bar' => FALSE]],
++      [FALSE, ['foo' => TRUE, 'bar' => FALSE, 'biz' => TRUE]],
++    ];
++  }
++
++}
