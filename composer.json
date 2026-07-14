@@ -4,7 +4,7 @@
   "version": "dev-main",
   "require": {
     "cweagans/composer-patches": "^1.0 || ^2.0",
-    "drupal/core": "^11"
+    "drupal/core": "~11.4.0"
   },
   "config": {
     "allow-plugins": {
@@ -15,7 +15,7 @@
     "patches": {
       "drupal/core": {
         "Html::cleanCssIdentifier Strips Valid Escaped Characters": "https://www.drupal.org/files/issues/2025-06-20/2916377.patch",
-        "[10.2 regression] CKEditor 5 breaks when \"Source\"/Source editing button is added and \"Manually editable HTML tags\" are specified": "https://www.drupal.org/files/issues/2026-06-08/3410100-111-mr-12509.patch"
+        "[10.2 regression] CKEditor 5 breaks when \"Source\"/Source editing button is added and \"Manually editable HTML tags\" are specified": "https://www.drupal.org/files/issues/2026-07-06/3410100-112-mr-12509.patch"
       }
     }
   }
