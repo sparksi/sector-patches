@@ -1,7 +1,7 @@
 {
   "name": "sparksi/sector-patches",
   "type": "metapackage",
-  "version": "dev-main",
+  "version": "2.0.8",
   "require": {
     "cweagans/composer-patches": "^1.0 || ^2.0",
     "drupal/core": "~11.4.0"
